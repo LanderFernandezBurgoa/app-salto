@@ -1,42 +1,42 @@
 import streamlit as st
 import cv2
-import tempfile
 import numpy as np
 
-st.title("Análisis de salto en video")
+# Cargar el video
+video_path = "ruta_a_tu_video.mp4"  # Cambia esto a la ubicación de tu video
+cap = cv2.VideoCapture(video_path)
 
-uploaded_file = st.file_uploader("Sube un video (.mp4)", type=["mp4"])
+# Inicializar el contador de frames
+frame_idx = 0
 
-if uploaded_file:
-    # Guardar archivo temporalmente
-    tfile = tempfile.NamedTemporaryFile(delete=False)
-    tfile.write(uploaded_file.read())
-    video_path = tfile.name
+# Obtener el número total de frames en el video
+total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    cap = cv2.VideoCapture(video_path)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    st.write(f"FPS: {fps}, Total de frames: {total_frames}")
-
-    # Selección de frames
-    frame_inicio = st.slider("Frame de despegue (inicio)", 0, total_frames - 1, 0)
-    frame_fin = st.slider("Frame de aterrizaje (final)", 0, total_frames - 1, total_frames - 1)
-
-    # Mostrar frame actual
-    frame_actual = st.slider("Ver frame", 0, total_frames - 1, 0)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_actual)
+# Función para mostrar el frame en la aplicación
+def show_frame(frame_idx):
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
     ret, frame = cap.read()
     if ret:
+        # Convertir el frame de BGR a RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        st.image(frame_rgb, caption=f"Frame {frame_actual}", use_column_width=True)
-    cap.release()
-
-    # Cálculo de salto
-    if frame_fin > frame_inicio:
-        tiempo_vuelo = (frame_fin - frame_inicio) / fps
-        g = 9.81  # m/s²
-        altura = (g * tiempo_vuelo**2) / 8
-        st.markdown(f"**Tiempo de vuelo:** {tiempo_vuelo:.3f} segundos")
-        st.markdown(f"**Altura estimada del salto:** {altura:.2f} metros")
+        st.image(frame_rgb, channels="RGB", use_column_width=True)
     else:
-        st.warning("El frame final debe ser posterior al inicial")
+        st.error("No se puede leer el frame.")
+
+# Mostrar el primer frame
+show_frame(frame_idx)
+
+# Botones para avanzar y retroceder
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("Retroceder"):
+        if frame_idx > 0:
+            frame_idx -= 1
+            show_frame(frame_idx)
+
+with col2:
+    if st.button("Avanzar"):
+        if frame_idx < total_frames - 1:
+            frame_idx += 1
+            show_frame(frame_idx)
