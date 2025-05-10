@@ -15,9 +15,9 @@ if uploaded_file is not None:
 
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-fps_detectado = cap.get(cv2.CAP_PROP_FPS)
-fps = st.number_input("FPS (frames por segundo)", min_value=1.0, max_value=240.0, value=fps_detectado if fps_detectado > 0 else 30.0)
-st.write(f"Total de frames: {total_frames}")
+    fps_detectado = cap.get(cv2.CAP_PROP_FPS)
+    fps = st.number_input("FPS (frames por segundo)", min_value=1.0, max_value=240.0, value=fps_detectado if fps_detectado > 0 else 30.0)
+    st.write(f"Total de frames: {total_frames}")
 
     # Inicializar session_state si no existe
     for key, default in [("frame_inicio", 0), ("frame_fin", total_frames - 1), ("frame_actual", 0)]:
@@ -33,7 +33,6 @@ st.write(f"Total de frames: {total_frames}")
                 if st.session_state[key] > 0:
                     st.session_state[key] -= 1
 
-        # Mostramos slider con valor temporal (sin vincular directamente a session_state)
         with col2:
             temp_val = st.slider(
                 label,
@@ -58,18 +57,3 @@ st.write(f"Total de frames: {total_frames}")
     cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.frame_actual)
     ret, frame = cap.read()
     if ret:
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        st.image(frame_rgb, caption=f"Frame {st.session_state.frame_actual}", use_column_width=True)
-    cap.release()
-
-    # Cálculo del salto
-    if st.session_state.frame_fin > st.session_state.frame_inicio:
-        tiempo_vuelo = (st.session_state.frame_fin - st.session_state.frame_inicio) / fps
-        g = 9.81
-        altura = (g * tiempo_vuelo ** 2) / 8
-        st.markdown(f"**Tiempo de vuelo:** {tiempo_vuelo:.3f} segundos")
-        st.markdown(f"**Altura estimada del salto:** {altura:.2f} metros")
-    else:
-        st.warning("El frame final debe ser posterior al inicial")
-else:
-    st.info("Por favor, sube un video en formato .mp4 para comenzar.")
