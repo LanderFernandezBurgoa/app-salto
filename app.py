@@ -2,55 +2,68 @@ import streamlit as st
 import cv2
 import numpy as np
 
-# Cargar el video
-video_path = "video.mp4"  # Cambia esto a la ubicación de tu video
+# Ruta al archivo de video
+video_path = "video.mp4"  # Cambia esto al nombre correcto de tu archivo de video
+
+# Intentar abrir el video
 cap = cv2.VideoCapture(video_path)
 
-# Comprobar si el video se cargó correctamente
+# Verificar si el video se abrió correctamente
 if not cap.isOpened():
-    st.error("Error al cargar el video. Asegúrate de que la ruta es correcta y que el video está disponible.")
+    st.error("Error al cargar el video. Asegúrate de que la ruta sea correcta y el video esté accesible.")
     st.stop()
 
 # Obtener el número total de frames en el video
 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-# Comprobar si el número total de frames es válido
+# Comprobar si el video tiene frames válidos
 if total_frames <= 0:
-    st.error("El video no tiene frames o no se puede leer correctamente.")
+    st.error("El video no contiene frames o no se puede leer correctamente.")
     st.stop()
 
-# Inicializar el contador de frames
-frame_idx = 0
-
-# Función para mostrar el frame en la aplicación
+# Función para mostrar un frame específico
 def show_frame(frame_idx):
+    # Establecer la posición del frame en el video
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
     ret, frame = cap.read()
+
     if ret:
-        # Convertir el frame de BGR a RGB
+        # Convertir el frame de BGR a RGB (OpenCV usa BGR por defecto)
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         st.image(frame_rgb, channels="RGB", use_column_width=True)
     else:
-        st.error("No se puede leer el frame. Intenta con otro video o verifica el archivo.")
-        st.stop()
+        st.error("No se pudo leer el frame en el índice: " + str(frame_idx))
 
-# Mostrar el primer frame
+# Inicializar el índice del frame
+frame_idx = 0
+
+# Mostrar el primer frame al inicio
 show_frame(frame_idx)
 
-# Botones para avanzar y retroceder
+# Controles para avanzar y retroceder en los frames
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("Retroceder"):
-        if frame_idx > 0:
-            frame_idx -= 1
-            show_frame(frame_idx)
+    if st.button("Retroceder") and frame_idx > 0:
+        frame_idx -= 1
+        show_frame(frame_idx)
 
 with col2:
-    if st.button("Avanzar"):
-        if frame_idx < total_frames - 1:
-            frame_idx += 1
-            show_frame(frame_idx)
+    if st.button("Avanzar") and frame_idx < total_frames - 1:
+        frame_idx += 1
+        show_frame(frame_idx)
 
-# Opción para seleccionar el frame inicial y final
-st.sidebar.header("Selecciona el
+# Seleccionar el rango de frames en el sidebar
+st.sidebar.header("Selecciona un rango de frames")
+
+# Seleccionar frame inicial y final con validaciones
+start_frame = st.sidebar.number_input("Frame inicial", min_value=0, max_value=total_frames-1, value=0)
+end_frame = st.sidebar.number_input("Frame final", min_value=start_frame, max_value=total_frames-1, value=total_frames-1)
+
+# Botón para mostrar frames entre el rango
+if st.sidebar.button("Mostrar frames en el rango"):
+    for i in range(start_frame, end_frame + 1):
+        show_frame(i)
+
+# Cerrar el objeto de captura de video cuando terminamos
+cap.release()
