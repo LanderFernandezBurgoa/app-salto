@@ -7,11 +7,11 @@ st.title("Análisis de salto en video")
 
 uploaded_file = st.file_uploader("Sube un video (.mp4)", type=["mp4"])
 
-if uploaded_file:
-    # Guardar archivo temporal
-    tfile = tempfile.NamedTemporaryFile(delete=False)
-    tfile.write(uploaded_file.read())
-    video_path = tfile.name
+if uploaded_file is not None:
+    # Guardar archivo temporal de forma segura
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
+        tmp_file.write(uploaded_file.read())
+        video_path = tmp_file.name
 
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -68,3 +68,5 @@ if uploaded_file:
         st.markdown(f"**Altura estimada del salto:** {altura:.2f} metros")
     else:
         st.warning("El frame final debe ser posterior al inicial")
+else:
+    st.info("Por favor, sube un video en formato .mp4 para comenzar.")
