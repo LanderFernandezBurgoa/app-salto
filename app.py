@@ -15,8 +15,9 @@ if uploaded_file is not None:
 
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    st.write(f"FPS: {fps}, Total de frames: {total_frames}")
+  fps_detectado = cap.get(cv2.CAP_PROP_FPS)
+fps = st.number_input("FPS (frames por segundo)", min_value=1.0, max_value=240.0, value=fps_detectado if fps_detectado > 0 else 30.0)
+st.write(f"Total de frames: {total_frames}")
 
     # Inicializar session_state si no existe
     for key, default in [("frame_inicio", 0), ("frame_fin", total_frames - 1), ("frame_actual", 0)]:
