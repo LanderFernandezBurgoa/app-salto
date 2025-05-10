@@ -3,7 +3,9 @@ import cv2
 import numpy as np
 
 # Ruta al archivo de video
-video_path = "video.mp4"  # Cambia esto al nombre correcto de tu archivo de video
+st.title("Análisis de salto en video")
+
+uploaded_file = st.file_uploader("Sube un video (.mp4)", type=["mp4"])
 
 # Intentar abrir el video
 cap = cv2.VideoCapture(video_path)
