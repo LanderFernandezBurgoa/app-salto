@@ -1,71 +1,70 @@
 import streamlit as st
 import cv2
+import tempfile
 import numpy as np
 
-# Ruta al archivo de video
 st.title("Análisis de salto en video")
 
 uploaded_file = st.file_uploader("Sube un video (.mp4)", type=["mp4"])
 
-# Intentar abrir el video
-cap = cv2.VideoCapture(video_path)
+if uploaded_file:
+    # Guardar archivo temporal
+    tfile = tempfile.NamedTemporaryFile(delete=False)
+    tfile.write(uploaded_file.read())
+    video_path = tfile.name
 
-# Verificar si el video se abrió correctamente
-if not cap.isOpened():
-    st.error("Error al cargar el video. Asegúrate de que la ruta sea correcta y el video esté accesible.")
-    st.stop()
+    cap = cv2.VideoCapture(video_path)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    st.write(f"FPS: {fps}, Total de frames: {total_frames}")
 
-# Obtener el número total de frames en el video
-total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    # Inicializar estados
+    if "frame_inicio" not in st.session_state:
+        st.session_state.frame_inicio = 0
+    if "frame_fin" not in st.session_state:
+        st.session_state.frame_fin = total_frames - 1
+    if "frame_actual" not in st.session_state:
+        st.session_state.frame_actual = 0
 
-# Comprobar si el video tiene frames válidos
-if total_frames <= 0:
-    st.error("El video no contiene frames o no se puede leer correctamente.")
-    st.stop()
+    # Función para mostrar controles con botones
+    def frame_control(label, key):
+        col1, col2, col3 = st.columns([1, 6, 1])
+        with col1:
+            if st.button("◀", key=key + "_menos"):
+                if st.session_state[key] > 0:
+                    st.session_state[key] -= 1
+        with col2:
+            st.session_state[key] = st.slider(
+                label,
+                0,
+                total_frames - 1,
+                st.session_state[key],
+                key=key,
+            )
+        with col3:
+            if st.button("▶", key=key + "_mas"):
+                if st.session_state[key] < total_frames - 1:
+                    st.session_state[key] += 1
 
-# Función para mostrar un frame específico
-def show_frame(frame_idx):
-    # Establecer la posición del frame en el video
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+    # Controles con botones
+    frame_control("Frame de despegue (inicio)", "frame_inicio")
+    frame_control("Frame de aterrizaje (final)", "frame_fin")
+    frame_control("Ver frame", "frame_actual")
+
+    # Mostrar frame actual
+    cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.frame_actual)
     ret, frame = cap.read()
-
     if ret:
-        # Convertir el frame de BGR a RGB (OpenCV usa BGR por defecto)
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        st.image(frame_rgb, channels="RGB", use_column_width=True)
+        st.image(frame_rgb, caption=f"Frame {st.session_state.frame_actual}", use_column_width=True)
+    cap.release()
+
+    # Cálculo de salto
+    if st.session_state.frame_fin > st.session_state.frame_inicio:
+        tiempo_vuelo = (st.session_state.frame_fin - st.session_state.frame_inicio) / fps
+        g = 9.81  # m/s²
+        altura = (g * tiempo_vuelo**2) / 8
+        st.markdown(f"**Tiempo de vuelo:** {tiempo_vuelo:.3f} segundos")
+        st.markdown(f"**Altura estimada del salto:** {altura:.2f} metros")
     else:
-        st.error("No se pudo leer el frame en el índice: " + str(frame_idx))
-
-# Inicializar el índice del frame
-frame_idx = 0
-
-# Mostrar el primer frame al inicio
-show_frame(frame_idx)
-
-# Controles para avanzar y retroceder en los frames
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("Retroceder") and frame_idx > 0:
-        frame_idx -= 1
-        show_frame(frame_idx)
-
-with col2:
-    if st.button("Avanzar") and frame_idx < total_frames - 1:
-        frame_idx += 1
-        show_frame(frame_idx)
-
-# Seleccionar el rango de frames en el sidebar
-st.sidebar.header("Selecciona un rango de frames")
-
-# Seleccionar frame inicial y final con validaciones
-start_frame = st.sidebar.number_input("Frame inicial", min_value=0, max_value=total_frames-1, value=0)
-end_frame = st.sidebar.number_input("Frame final", min_value=start_frame, max_value=total_frames-1, value=total_frames-1)
-
-# Botón para mostrar frames entre el rango
-if st.sidebar.button("Mostrar frames en el rango"):
-    for i in range(start_frame, end_frame + 1):
-        show_frame(i)
-
-# Cerrar el objeto de captura de video cuando terminamos
-cap.release()
+        st.warning("El frame final debe ser posterior al inicial")
